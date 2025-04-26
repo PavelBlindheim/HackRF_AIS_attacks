@@ -1,0 +1,1 @@
+Simply change the target_mmsi variable in attacker.py to the wanted value and run the program.

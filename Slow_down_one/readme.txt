@@ -1,0 +1,2 @@
+To run attack, set the target_mmsi variable in the attacker.py script and run it. 
+The delay will depend on the system running the script, therefore, the tune_factor variable has to be changed to increase success of attacks. 

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Draw a Line on the Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        #map {
+            width: 100%;
+            height: 600px;
+        }
+        .input-container {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h3>Draw a route on the map and choose speed/mmsi values</h3>
+    
+    <div id="map"></div>
+
+    <div class="input-container">
+        <label for="speed">Speed:</label>
+        <input type="number" id="speed" placeholder="Enter speed">
+        
+        <label for="mmsi">MMSI:</label>
+        <input type="text" id="mmsi" placeholder="Enter MMSI">
+    </div>
+
+    <button id="submit" style="margin-top: 10px;">Send Coordinates</button>
+
+    <script>
+        // Initialize the map and set its view
+        var map = L.map('map').setView([20, 0], 2);
+
+        // Add a tile layer (OpenStreetMap)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Initialize the FeatureGroup to store drawn layers
+        var drawnItems = new L.FeatureGroup();
+        map.addLayer(drawnItems);
+
+        // Initialize the draw control and pass it the FeatureGroup of editable layers
+        var drawControl = new L.Control.Draw({
+            edit: {
+                featureGroup: drawnItems
+            },
+            draw: {
+                polyline: true, // Enable drawing lines
+                polygon: false,
+                rectangle: false,
+                circle: false,
+                marker: false,
+                circlemarker: false
+            }
+        });
+        map.addControl(drawControl);
+
+        // Handle the created event for the drawn layers
+        map.on(L.Draw.Event.CREATED, function (event) {
+            var layer = event.layer;
+            drawnItems.addLayer(layer);
+        });
+
+        // Handle the submit button click event
+        document.getElementById('submit').addEventListener('click', function() {
+            var coordinates = [];
+            drawnItems.eachLayer(function(layer) {
+                if (layer instanceof L.Polyline) {
+                    var latlngs = layer.getLatLngs();
+                    latlngs.forEach(function(latlng) {
+                        coordinates.push([latlng.lng, latlng.lat]);
+                    });
+                }
+            });
+
+            if (coordinates.length === 0) {
+                alert("No lines drawn on the map!");
+                return;
+            }
+
+            var speed = document.getElementById('speed').value;
+            var mmsi = document.getElementById('mmsi').value;
+
+            if (!speed || !mmsi) {
+                alert("Please enter both speed and MMSI before submitting.");
+                return;
+            }
+
+            // Send the data to the server via AJAX POST request
+            $.ajax({
+                type: 'POST',
+                url: '/coordinates',
+                data: JSON.stringify({ 
+                    "coordinates": coordinates,
+                    "speed": speed,
+                    "mmsi": mmsi
+                }),
+                contentType: "application/json",
+                dataType: 'json',
+                success: function(response) {
+                    alert('Data submitted successfully!');
+                },
+                error: function(error) {
+                    alert('Error submitting data');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
